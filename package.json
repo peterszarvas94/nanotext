@@ -2,7 +2,7 @@
   "name": "nanotext",
   "description": "nanotext - the simplest and smallest WYSIWYG text editor for web, with no dependencies",
   "author": "Peter Szarvas",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "main": "./dist/nanotext.umd.js",
   "module": "./dist/nanotext.es.js",
