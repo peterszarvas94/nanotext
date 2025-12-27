@@ -298,4 +298,12 @@ function init(settings = {}) {
   return element;
 }
 
-export { FORMAT_BLOCK, queryCommandState, exec, insertImage, init };
+export { 
+  FORMAT_BLOCK, 
+  queryCommandState, 
+  exec, 
+  insertImage, 
+  init,
+  defaultActions,
+  defaultClasses
+};
