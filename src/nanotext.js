@@ -219,7 +219,7 @@ function init(settings = {}) {
   const actions = settings.actions
     ? settings.actions.map((action) => {
         if (typeof action === "string") {
-          const defaultAction = defaultActions[action];
+          const defaultAction = defaultActions.find((a) => a.name === action);
           // Override image action with custom handler if provided
           if (action === "image" && handleImageClick) {
             return {
@@ -228,12 +228,12 @@ function init(settings = {}) {
             };
           }
           return defaultAction;
-        } else if (defaultActions[action.name])
-          return { ...defaultActions[action.name], ...action };
-        return action;
+        } else {
+          const defaultAction = defaultActions.find((a) => a.name === action.name);
+          return defaultAction ? { ...defaultAction, ...action } : action;
+        }
       })
-    : Object.keys(defaultActions).map((action) => {
-        const defaultAction = defaultActions[action];
+    : defaultActions.map((defaultAction) => {
         // Override image action with custom handler if provided
         if (defaultAction.name === "image" && handleImageClick) {
           return {
