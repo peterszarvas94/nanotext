@@ -1,11 +1,11 @@
-import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { defineConfig } from "vite";
+import { resolve } from "path";
 
 export default defineConfig(({ mode }) => {
   // Development mode: serve the example
-  if (mode === 'development') {
+  if (mode === "development") {
     return {
-      root: './example',
+      root: "./example",
       server: {
         port: 3000,
       },
@@ -17,14 +17,14 @@ export default defineConfig(({ mode }) => {
     build: {
       minify: false,
       lib: {
-        entry: resolve(__dirname, 'src/nanotext.js'),
-        name: 'Nanotext',
+        entry: resolve(__dirname, "src/nanotext.ts"),
+        name: "Nanotext",
         fileName: (format) => `nanotext.${format}.js`,
-        formats: ['es', 'umd'],
+        formats: ["es", "umd"],
       },
       rollupOptions: {
         output: {
-          assetFileNames: 'nanotext.[ext]',
+          assetFileNames: "nanotext.[ext]",
         },
       },
     },

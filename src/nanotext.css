@@ -1,15 +1,24 @@
+:root {
+  --nanotext-button-size: 1.875rem;
+  --nanotext-content-padding: 0.625rem;
+  --nanotext-actionbar-top: 1rem;
+  --nanotext-border-color: rgba(10, 10, 10, 0.1);
+  --nanotext-selected-bg: #f0f0f0;
+  --nanotext-actionbar-bg: #fff;
+}
+
 .nanotext-content {
   box-sizing: border-box;
   outline: 0;
   overflow-y: auto;
-  padding: 10px 0;
+  padding: var(--nanotext-content-padding) 0;
 }
 
 .nanotext-actionbar {
-  background-color: #fff;
-  border-bottom: 1px solid rgba(10, 10, 10, 0.1);
+  background-color: var(--nanotext-actionbar-bg);
+  border-bottom: 1px solid var(--nanotext-border-color);
   position: sticky;
-  top: 5rem;
+  top: var(--nanotext-actionbar-top);
   margin: 0 auto;
   width: fit-content;
   left: 0;
@@ -22,38 +31,14 @@
   background-color: transparent;
   border: none;
   cursor: pointer;
-  height: 30px;
+  height: var(--nanotext-button-size);
   outline: 0;
-  width: 30px;
+  width: var(--nanotext-button-size);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .nanotext-button-selected {
-  background-color: #f0f0f0;
-}
-
-.nanotext-img-wrapper {
-  display: flex;
-
-  img {
-    display: block;
-  }
-
-  &:has(img[style*="text-align: left;"]) {
-    justify-content: flex-start;
-  }
-
-  &:has(img[style*="text-align: center;"]) {
-    justify-content: center;
-  }
-
-  &:has(img[style*="text-align: right;"]) {
-    justify-content: flex-end;
-  }
-
-  &:has(img[style*="text-align: justify;"]) {
-    justify-content: space-between;
-  }
+  background-color: var(--nanotext-selected-bg);
 }

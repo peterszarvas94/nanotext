@@ -284,6 +284,11 @@ function init(settings: Settings = {}): HTMLElement {
   (element as any).content = content;
   content.contentEditable = "true";
   content.className = classes.content;
+  
+  // Trigger onChange for initial content
+  if (settings.content) {
+    onChange(content.innerHTML);
+  }
   content.oninput = (event: Event) => {
     const target = event.target as HTMLElement;
     const firstChild = target.firstChild;

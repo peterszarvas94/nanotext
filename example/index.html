@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Parchment Editor Test</title>
+    <title>Nanotext</title>
 
     <script type="module">
-      import { init, insertImage } from "../src/nanotext.js";
+      import { init, insertImage } from "../src/nanotext.ts";
       import "../src/nanotext.css";
+      import contentHtml from "./content.html?raw";
 
       // you should store image and get stored URL, not convert it to base64, this is only for demo
       function toBase64(file) {
@@ -28,9 +29,10 @@
         }
       });
 
+      // Initialize editor with imported content
       const editor = init({
         element: document.getElementById("editor"),
-        content: "<p>Start typing here...</p>",
+        content: contentHtml,
         onChange: (html) => {
           document.getElementById("output").textContent = html;
         },
@@ -41,8 +43,6 @@
     </script>
   </head>
   <body>
-    <h1>Nanotext Editor</h1>
-
     <div id="editor"></div>
 
     <h2>Output:</h2>
