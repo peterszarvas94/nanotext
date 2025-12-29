@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nanotext v2</title>
+
+    <script type="module">
+      import { init, insertFigure } from "../src/nanotext-v2.ts";
+      import "../src/nanotext-v2.css";
+
+      // Convert file to base64 (demo only - in production, upload to server)
+      function toBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const input = document.getElementById("upload");
+      input.addEventListener("change", async () => {
+        const file = input.files[0];
+        if (file && file.name !== "") {
+          const url = await toBase64(file);
+          insertFigure(url);
+        }
+      });
+
+      // Initialize editor
+      const editor = init({
+        element: document.getElementById("editor"),
+        content: `
+          <h1>Nanotext v2</h1>
+          <p>A modern, lightweight WYSIWYG editor using <strong>Selection API</strong> instead of deprecated <em>execCommand</em>.</p>
+          <h2>Features</h2>
+          <ul>
+            <li><strong>Bold</strong>, <em>italic</em>, <u>underline</u>, <s>strikethrough</s></li>
+            <li>Headings (H1, H2)</li>
+            <li>Lists (ordered and unordered)</li>
+            <li>Block quotes and code blocks</li>
+            <li>Text alignment</li>
+            <li>Links and images with captions</li>
+            <li><sub>Subscript</sub> and <sup>superscript</sup></li>
+          </ul>
+          <blockquote>This is a blockquote. It can contain <strong>formatted</strong> text.</blockquote>
+          <pre>// This is a code block
+const editor = init({ element: document.getElementById("editor") });</pre>
+          <p>Try selecting text and clicking the toolbar buttons!</p>
+        `,
+        onChange: (html) => {
+          document.getElementById("output").textContent = html;
+        },
+        handleImageClick: () => {
+          input.click();
+        },
+      });
+    </script>
+    
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      
+      #editor {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        min-height: 300px;
+      }
+      
+      h2 {
+        margin-top: 2rem;
+      }
+      
+      #output {
+        display: block;
+        background: #f5f5f5;
+        padding: 1rem;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        word-break: break-all;
+        font-family: monospace;
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="editor"></div>
+
+    <h2>HTML Output:</h2>
+    <output id="output"></output>
+
+    <input id="upload" type="file" accept="image/*" style="display: none" />
+  </body>
+</html>

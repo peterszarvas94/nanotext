@@ -18,55 +18,65 @@ This document outlines the plan to modernize Nanotext by removing deprecated API
 The content div (`contentEditable`) will only contain these direct children:
 
 **Block Elements:**
-- `<p>` - Paragraph (default, can contain text, spans, images)
-- `<h1>`, `<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>` - Headings
+- `<p>` - Paragraph (default)
+- `<h1>`, `<h2>` - Headings
 - `<blockquote>` - Quotes
-- `<pre>` or `<code>` - Code blocks (use standard)
-- `<hr>` - Horizontal rule
+- `<pre>` - Code blocks
 - `<ul>`, `<ol>` - Lists (containing `<li>` children)
+- `<figure>` - Images with optional caption
 
 **Inline Elements (within blocks):**
-- `<span style="...">` - Inline formatting
+- `<strong>` - Bold
+- `<em>` - Italic
+- `<u>` - Underline
+- `<s>` - Strikethrough
 - `<a href="...">` - Links
 - `<sub>`, `<sup>` - Subscript/Superscript
-- `<img>` - Images (always inline within `<p>` or `<li>`)
 
 **NO NESTING:**
 - No `<div>` in `<div>`
-- No nested block elements (except `<li>` inside `<ul>`/`<ol>`)
-- No nested `<span>` elements
+- No nested block elements (except `<li>` inside `<ul>`/`<ol>`, `<figcaption>` inside `<figure>`)
+- Semantic tags can be nested as needed (e.g., `<strong><em>text</em></strong>`)
 
 ### 3. Inline Formatting Strategy
 
-**Use inline styles on `<span>` elements:**
+**Use semantic HTML elements for inline formatting:**
 ```html
 <!-- Bold -->
-<span style="font-weight: bold">text</span>
+<strong>text</strong>
 
 <!-- Italic -->
-<span style="font-style: italic">text</span>
+<em>text</em>
 
 <!-- Underline -->
-<span style="text-decoration: underline">text</span>
+<u>text</u>
 
 <!-- Strikethrough -->
-<span style="text-decoration: line-through">text</span>
+<s>text</s>
 
-<!-- Multiple styles merged into one span -->
-<span style="font-weight: bold; font-style: italic">text</span>
+<!-- Multiple styles - nest elements -->
+<strong><em>bold and italic</em></strong>
+
+<!-- Links -->
+<a href="url">text</a>
+
+<!-- Subscript/Superscript -->
+<sub>text</sub>
+<sup>text</sup>
 ```
 
-**Special inline elements (exceptions to span rule):**
-- `<a href="...">text</a>` - Links
-- `<sub>text</sub>` - Subscript
-- `<sup>text</sup>` - Superscript
-
-**Block-level styles:**
+**Block-level styles (use CSS):**
 ```html
 <!-- Text alignment on block elements -->
 <p style="text-align: center">centered text</p>
 <h1 style="text-align: right">right-aligned heading</h1>
 ```
+
+**Why semantic HTML instead of styled spans:**
+- Simpler HTML output
+- Better semantics and accessibility
+- Easier state detection (just check if selection is inside `<strong>`)
+- No text-decoration conflicts between underline and strikethrough
 
 ### 4. Two-State Button System (Google Docs Style)
 
@@ -122,18 +132,24 @@ Button state is determined by cursor position or selection:
 
 ### Image Insertion
 
-**Always inline within paragraph:**
-```javascript
-// Empty paragraph - insert image inside
-<p><br></p> + insertImage(url) 
-→ <p><img src="url" /></p>
+**Always block-level using `<figure>` with optional caption:**
+```html
+<!-- Image without caption -->
+<figure>
+  <img src="url" />
+</figure>
 
-// Non-empty paragraph - insert inline at cursor
-<p>Hello World</p> + insertImage(url) at cursor
-→ <p>Hello<img src="url" />World</p>
+<!-- Image with caption -->
+<figure>
+  <img src="url" />
+  <figcaption contenteditable="true">Caption here</figcaption>
+</figure>
 ```
 
-**Always inside `<p>` tag** - images are inline elements, never block-level.
+**Behavior:**
+- Images are always in separate line (block-level)
+- Caption is editable via nested contentEditable
+- Inserting image creates new `<figure>` block at cursor position
 
 ### List Creation
 
@@ -157,20 +173,22 @@ Button state is determined by cursor position or selection:
 **List items can contain inline formatting:**
 ```html
 <ul>
-  <li>Buy <span style="font-weight: bold">milk</span></li>
+  <li>Buy <strong>milk</strong></li>
 </ul>
 ```
 
 **Don't intercept Enter key:**
 - Rely on browser's default behavior for creating new list items
-- Use `normalizeContent()` to clean up any issues
+- Browser handles undo/redo automatically with contentEditable
 
-### Span Management
+### DOM Normalization
 
-**No merging on partial selections:**
-- Keep implementation simple
-- Multiple adjacent spans with same styles are OK
-- `normalizeContent()` can optionally merge them later
+**Skip normalization entirely:**
+- Browser's contentEditable handles undo/redo history automatically
+- Normalizing the DOM breaks the browser's undo stack
+- Keep it simple - let the browser handle nested/adjacent elements naturally
+- No need to merge adjacent `<strong>` tags or clean up nesting
+- Can add optional normalization later if needed (opt-in feature)
 
 ---
 
@@ -180,45 +198,33 @@ Button state is determined by cursor position or selection:
 
 **Selection Helpers:**
 ```typescript
-function getEditorSelection(): { selection: Selection; range: Range } | null
-function getAllTextNodesInSelection(selection: Selection): Node[]
-function getBlockElement(node: Node): HTMLElement | null
+function getSelection(): Selection | null
+function getRange(): Range | null
+function getSelectedNodes(): Node[]
+function getParentBlock(node: Node): HTMLElement | null
 ```
 
-**Style Detection:**
+**Style Detection (for semantic tags):**
 ```typescript
-function nodeHasStyle(node: Node, style: string, value: string): boolean
-function getStyleState(selection: Selection, style: string, value: string): boolean
-function getInlineStyles(node: Node): Record<string, string>
-function getBlockType(selection: Selection): string | null
-function isInList(selection: Selection): boolean
+function isInElement(tagName: string): boolean // Check if selection is inside <strong>, <em>, etc.
+function getBlockType(): string | null // Returns 'p', 'h1', 'h2', 'blockquote', 'li', etc.
+function hasAlignment(): string | null // Returns 'left', 'center', 'right', 'justify', or null
 ```
 
 **Style Manipulation:**
 ```typescript
-function applyStyleToSelection(selection: Selection, style: string, value: string): void
-function removeStyleFromSelection(selection: Selection, style: string): void
-function toggleInlineStyle(style: string, value: string): void
-function clearAllStyles(selection: Selection): void // Remove all inline styles and empty spans
-function cleanupEmptySpans(element: HTMLElement): void // Remove spans with no text content
+function toggleElement(tagName: string): void // Toggle <strong>, <em>, <u>, <s>
+function wrapSelection(tagName: string, attributes?: Record<string, string>): void // Wrap in element
+function unwrapSelection(tagName: string): void // Remove wrapping element
+function setBlockType(tagName: string): void // Convert to <p>, <h1>, <h2>, <blockquote>
+function setAlignment(value: string): void // Set text-align CSS on block element
 ```
 
 **Block Manipulation:**
 ```typescript
-function changeBlockType(tagName: string): void
-function insertList(type: 'ul' | 'ol'): void
-function insertImage(url: string): void
-```
-
-**DOM Normalization:**
-```typescript
-function normalizeContent(contentDiv: HTMLElement): void
-// - Flatten nested divs/blocks
-// - Merge adjacent spans with identical styles
-// - Remove empty spans (NO text content)
-// - Remove spans with no style attributes
-// - Wrap orphaned text nodes in <p>
-// - Ensure only allowed block elements exist
+function toggleList(type: 'ul' | 'ol'): void
+function insertFigure(url: string): void
+function createLink(url: string): void
 ```
 
 ### Phase 2: Update Action Definitions
@@ -227,26 +233,26 @@ function normalizeContent(contentDiv: HTMLElement): void
 ```typescript
 {
   name: "bold",
-  result: () => toggleInlineStyle('font-weight', 'bold'),
-  state: () => getStyleState(getSelection(), 'font-weight', 'bold') // returns boolean
+  result: () => toggleElement('strong'),
+  state: () => isInElement('strong')
 }
 
 {
   name: "italic",
-  result: () => toggleInlineStyle('font-style', 'italic'),
-  state: () => getStyleState(getSelection(), 'font-style', 'italic')
+  result: () => toggleElement('em'),
+  state: () => isInElement('em')
 }
 
 {
   name: "underline",
-  result: () => toggleInlineStyle('text-decoration', 'underline'),
-  state: () => getStyleState(getSelection(), 'text-decoration', 'underline')
+  result: () => toggleElement('u'),
+  state: () => isInElement('u')
 }
 
 {
-  name: "strikeThrough",
-  result: () => toggleInlineStyle('text-decoration', 'line-through'),
-  state: () => getStyleState(getSelection(), 'text-decoration', 'line-through')
+  name: "strikethrough",
+  result: () => toggleElement('s'),
+  state: () => isInElement('s')
 }
 ```
 
@@ -254,20 +260,32 @@ function normalizeContent(contentDiv: HTMLElement): void
 ```typescript
 {
   name: "heading1",
-  result: () => changeBlockType('h1'),
-  state: () => getBlockType(getSelection()) === 'h1' // returns boolean
+  result: () => setBlockType('h1'),
+  state: () => getBlockType() === 'h1'
+}
+
+{
+  name: "heading2",
+  result: () => setBlockType('h2'),
+  state: () => getBlockType() === 'h2'
 }
 
 {
   name: "paragraph",
-  result: () => changeBlockType('p'),
-  state: () => getBlockType(getSelection()) === 'p'
+  result: () => setBlockType('p'),
+  state: () => getBlockType() === 'p'
 }
 
 {
   name: "quote",
-  result: () => changeBlockType('blockquote'),
-  state: () => getBlockType(getSelection()) === 'blockquote'
+  result: () => setBlockType('blockquote'),
+  state: () => getBlockType() === 'blockquote'
+}
+
+{
+  name: "code",
+  result: () => setBlockType('pre'),
+  state: () => getBlockType() === 'pre'
 }
 ```
 
@@ -275,14 +293,14 @@ function normalizeContent(contentDiv: HTMLElement): void
 ```typescript
 {
   name: "olist",
-  result: () => insertList('ol'),
-  state: () => isInList(getSelection()) && getBlockType(getSelection()) === 'ol'
+  result: () => toggleList('ol'),
+  state: () => getBlockType() === 'li' && isInListType('ol')
 }
 
 {
   name: "ulist",
-  result: () => insertList('ul'),
-  state: () => isInList(getSelection()) && getBlockType(getSelection()) === 'ul'
+  result: () => toggleList('ul'),
+  state: () => getBlockType() === 'li' && isInListType('ul')
 }
 ```
 
@@ -290,14 +308,14 @@ function normalizeContent(contentDiv: HTMLElement): void
 ```typescript
 {
   name: "subscript",
-  result: () => wrapSelection('sub'),
-  state: () => isSelectionWrappedIn('sub')
+  result: () => toggleElement('sub'),
+  state: () => isInElement('sub')
 }
 
 {
   name: "superscript",
-  result: () => wrapSelection('sup'),
-  state: () => isSelectionWrappedIn('sup')
+  result: () => toggleElement('sup'),
+  state: () => isInElement('sup')
 }
 
 {
@@ -306,14 +324,14 @@ function normalizeContent(contentDiv: HTMLElement): void
     const url = window.prompt("Enter the link URL");
     if (url) createLink(url);
   },
-  state: () => isSelectionWrappedIn('a')
+  state: () => isInElement('a')
 }
 
 {
   name: "image",
   result: () => {
     const url = window.prompt("Insert image url");
-    if (url) insertImage(url);
+    if (url) insertFigure(url);
   }
 }
 ```
@@ -322,24 +340,43 @@ function normalizeContent(contentDiv: HTMLElement): void
 ```typescript
 {
   name: "justifyLeft",
-  result: () => toggleBlockStyle('text-align', 'left'),
-  state: () => getBlockStyle(getSelection(), 'text-align') === 'left'
+  result: () => setAlignment('left'),
+  state: () => hasAlignment() === 'left'
+}
+
+{
+  name: "justifyCenter",
+  result: () => setAlignment('center'),
+  state: () => hasAlignment() === 'center'
+}
+
+{
+  name: "justifyRight",
+  result: () => setAlignment('right'),
+  state: () => hasAlignment() === 'right'
+}
+
+{
+  name: "justifyFull",
+  result: () => setAlignment('justify'),
+  state: () => hasAlignment() === 'justify'
 }
 ```
 
-**Clear Formatting Action:**
+**Undo/Redo Actions:**
 ```typescript
 {
-  name: "removeFormat",
-  icon: '<svg>...</svg>', // eraser or clear format icon
-  title: "Clear Formatting",
-  result: () => {
-    const sel = getEditorSelection();
-    if (sel) clearAllStyles(sel.selection);
-  }
-  // No state function - always available
+  name: "undo",
+  result: () => document.execCommand('undo'), // Browser native undo
+}
+
+{
+  name: "redo",
+  result: () => document.execCommand('redo'), // Browser native redo
 }
 ```
+
+**Note:** We keep undo/redo using execCommand since browser handles the history automatically. No need to reimplement this.
 
 ### Phase 3: Update Button Rendering
 
@@ -368,18 +405,20 @@ if (action.state) {
 
 ### Phase 5: Input Event Handler
 
-**Hook normalization:**
+**Simple onChange callback (no normalization):**
 ```typescript
 content.oninput = (event: Event) => {
   const target = event.target as HTMLElement;
-  
-  // Normalize DOM structure
-  normalizeContent(target);
   
   // Trigger onChange callback
   onChange(target.innerHTML);
 };
 ```
+
+**No normalization needed:**
+- Browser handles DOM structure automatically
+- Undo/redo works natively
+- Keep it simple
 
 ### Phase 6: Remove Deprecated Code
 
@@ -410,29 +449,26 @@ export {
 ### Unit Tests
 
 **State detection:**
-- Test `getStyleState()` with no style, full style, mixed style
-- Test `getBlockType()` with different block elements
-- Test `isInList()` inside and outside lists
+- Test `isInElement()` with various semantic tags
+- Test `getBlockType()` with different block elements (p, h1, h2, blockquote, pre, li)
+- Test `hasAlignment()` with various text-align values
 
 **Style manipulation:**
-- Test `toggleInlineStyle()` with all three states
-- Test style merging in single span
-- Test style removal without deleting span
-
-**Normalization:**
-- Test flattening nested divs
-- Test merging adjacent spans
-- Test wrapping orphaned text
-- Test removing invalid elements
+- Test `toggleElement()` wrapping/unwrapping text in semantic tags
+- Test `setBlockType()` converting between block elements
+- Test `toggleList()` creating and removing lists
+- Test `insertFigure()` creating figure with image
+- Test `createLink()` wrapping selection in anchor tag
 
 ### Integration Tests
 
 **User workflows:**
 - Type text → select → bold → italic → unbold
-- Create list → type items → format items
-- Insert image in empty/non-empty paragraph
-- Change block types with formatted content
-- Mixed selection toggles
+- Create list → type items → format items → press Enter (new list item)
+- Insert image → creates figure block
+- Change block types with formatted content (p → h1 → h2 → blockquote → pre)
+- Apply text alignment to blocks
+- Test undo/redo throughout all operations
 
 ---
 
@@ -441,42 +477,66 @@ export {
 ### Breaking Changes
 
 1. **HTML output format changed:**
-   - Old: `<b>text</b>`, `<i>text</i>`, `<u>text</u>`
-   - New: `<span style="...">text</span>`
+   - Old: `<b>text</b>`, `<i>text</i>` (from execCommand)
+   - New: `<strong>text</strong>`, `<em>text</em>`, `<u>text</u>`, `<s>text</s>`
 
-2. **State function return type changed:**
-   - Old: `boolean`
-   - New: `'on' | 'off' | 'indeterminate'`
-
-3. **Removed exports:**
+2. **Removed exports:**
    - `FORMAT_BLOCK`
    - `queryCommandState`
+   - `queryCommandValue`
    - `exec`
 
-4. **CSS classes added:**
-   - `.nanotext-button-indeterminate`
+3. **Image handling changed:**
+   - Old: Inline `<img>` inserted via execCommand
+   - New: Block-level `<figure><img /></figure>`
+
+4. **Actions API (backward compatible):**
+   - String arrays still supported: `['bold', 'italic']`
+   - Object arrays also supported: `[{ name: 'bold' }, { name: 'italic' }]`
 
 ### Backward Compatibility
 
-**Content migration:**
-- Existing content with `<b>`, `<i>`, `<u>` tags will be normalized on first edit
-- `normalizeContent()` will convert semantic tags to styled spans
+**Content format:**
+- Old content with `<b>`, `<i>`, `<u>` tags still renders correctly
+- New content uses semantic tags `<strong>`, `<em>`, etc.
+- No automatic migration - output format simply changes going forward
 
 ---
 
-## Open Questions (ANSWERED)
+## Feature Set (Final)
 
-- ✅ **Subscript/Superscript:** Use `<sub>` and `<sup>` tags
-- ✅ **Strikethrough:** Use inline style `text-decoration: line-through`
-- ✅ **Code blocks:** Use `<pre>` or `<code>` tags (whatever is standard)
-- ✅ **Links:** Keep `<a href="...">` tags (special case)
-- ✅ **Horizontal rule:** Keep `<hr>` as block element
+**Inline Formatting:**
+- ✅ Bold (`<strong>`)
+- ✅ Italic (`<em>`)
+- ✅ Underline (`<u>`)
+- ✅ Strikethrough (`<s>`)
+- ✅ Subscript (`<sub>`)
+- ✅ Superscript (`<sup>`)
+
+**Block Types:**
+- ✅ Paragraph (`<p>`)
+- ✅ Heading 1 (`<h1>`)
+- ✅ Heading 2 (`<h2>`)
+- ✅ Blockquote (`<blockquote>`)
+- ✅ Code block (`<pre>`)
+
+**Lists:**
+- ✅ Ordered list (`<ol>`)
+- ✅ Unordered list (`<ul>`)
+
+**Special:**
+- ✅ Link (`<a>`)
+- ✅ Image (`<figure>` with optional `<figcaption>`)
+- ✅ Text alignment (left, center, right, justify) via CSS
+
+**Undo/Redo:**
+- ✅ Browser native undo/redo (keep using execCommand for this)
 
 ---
 
-## API Changes
+## API (Backward Compatible)
 
-### Current API (String-based)
+### Simple API (Recommended)
 ```typescript
 const editor = init({
   element: document.getElementById("editor"),
@@ -484,70 +544,68 @@ const editor = init({
 });
 ```
 
-### New API (Object-based)
+### Advanced API (Custom Actions)
 ```typescript
 const editor = init({
   element: document.getElementById("editor"),
   actions: [
-    { name: 'bold' },
-    { name: 'italic' },
-    { name: 'underline' },
-    { name: 'heading1' },
-    { name: 'heading2' }
+    'bold', // Use default
+    { 
+      name: 'italic', 
+      title: 'Make Italic', // Override title
+      icon: '<svg>...</svg>' // Override icon
+    },
+    {
+      name: 'custom',
+      icon: '...',
+      title: 'Custom Action',
+      result: () => { /* custom logic */ },
+      state: () => false
+    }
   ]
 });
 ```
 
-**Rationale:**
-- More explicit and consistent
-- Easier to customize individual actions
-- Better TypeScript support
-- Can override title, icon, result, or state per action
-
-**Custom actions still supported:**
-```typescript
-actions: [
-  { name: 'bold' }, // Use default
-  { 
-    name: 'italic', 
-    title: 'Make Italic', // Override title
-    icon: '<svg>...</svg>' // Override icon
-  },
-  {
-    name: 'custom',
-    icon: '...',
-    title: 'Custom Action',
-    result: () => { /* custom logic */ },
-    state: () => false
-  }
-]
-```
-
----
-
-## Timeline
-
-1. **Phase 1-2:** Core helper functions (2-3 days)
-2. **Phase 3-4:** Button system & CSS (1 day)
-3. **Phase 5:** Integration & normalization (1 day)
-4. **Phase 6:** Cleanup & testing (1 day)
-5. **Documentation:** Update AGENTS.md and README (1 day)
-
-**Total estimated time:** ~1 week
+**Backward compatible:**
+- String arrays work as before
+- Object arrays work for customization
+- Mix and match strings and objects
 
 ---
 
 ## Success Criteria
 
-- ✅ No deprecation warnings in console
-- ✅ All actions work without execCommand
-- ✅ Flat DOM structure maintained
-- ✅ Three-state buttons work correctly
-- ✅ All existing tests pass (with updates)
+- ✅ No deprecation warnings in console (except undo/redo which use execCommand)
+- ✅ All formatting actions work without execCommand (using Selection/Range API)
+- ✅ Flat DOM structure with semantic HTML tags
+- ✅ Two-state buttons work correctly (ON/OFF, no indeterminate)
+- ✅ Browser native undo/redo works throughout
+- ✅ All existing tests pass (with updates for new HTML output)
 - ✅ Example page works identically to before
 - ✅ Clean, maintainable codebase
+- ✅ Backward compatible API (string arrays still work)
+
+---
+
+## Implementation Notes
+
+### Key Decisions
+1. **Semantic HTML over styled spans** - Simpler, more accessible, easier to work with
+2. **No DOM normalization** - Let browser handle structure, preserve native undo/redo
+3. **Block-level images** - Using `<figure>` with optional `<figcaption>`
+4. **Two-state buttons only** - "Indeterminate" (mixed state) counts as OFF
+5. **Keep execCommand for undo/redo** - Browser handles history automatically, no need to reimplement
+6. **Backward compatible API** - String arrays still work, objects optional for customization
+
+### Simplifications from Original Plan
+- Removed h3-h6 (only h1-h2 needed for bare minimum)
+- Removed horizontal rule (not essential)
+- Removed normalization (adds complexity, breaks undo/redo)
+- Simplified helper functions (fewer abstractions)
+- Using semantic tags instead of inline styles (much simpler)
 
 ---
 
 *Document created: 2025-12-28*
+*Document updated: 2025-12-29*
 *Status: Planning Complete - Ready for Implementation*

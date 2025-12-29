@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
       root: "./example",
       server: {
         port: 3000,
+        open: "/v2.html",
       },
     };
   }

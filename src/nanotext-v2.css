@@ -1,0 +1,109 @@
+:root {
+  --nanotext-button-size: 1.875rem;
+  --nanotext-content-padding: 0.625rem;
+  --nanotext-actionbar-top: 1rem;
+  --nanotext-border-color: rgba(10, 10, 10, 0.1);
+  --nanotext-selected-bg: #f0f0f0;
+  --nanotext-actionbar-bg: #fff;
+}
+
+.nanotext-content {
+  box-sizing: border-box;
+  outline: 0;
+  overflow-y: auto;
+  padding: var(--nanotext-content-padding) 0;
+}
+
+.nanotext-actionbar {
+  background-color: var(--nanotext-actionbar-bg);
+  border-bottom: 1px solid var(--nanotext-border-color);
+  position: sticky;
+  top: var(--nanotext-actionbar-top);
+  margin: 0 auto;
+  width: fit-content;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.nanotext-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  height: var(--nanotext-button-size);
+  outline: 0;
+  width: var(--nanotext-button-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nanotext-button-selected {
+  background-color: var(--nanotext-selected-bg);
+}
+
+/* Content styling */
+.nanotext-content p,
+.nanotext-content h1,
+.nanotext-content h2,
+.nanotext-content blockquote,
+.nanotext-content pre,
+.nanotext-content ul,
+.nanotext-content ol {
+  margin: 0 0 0.5em 0;
+}
+
+.nanotext-content blockquote {
+  border-left: 3px solid var(--nanotext-border-color);
+  padding-left: 1em;
+  margin-left: 0;
+  color: #666;
+}
+
+.nanotext-content pre {
+  background-color: #f5f5f5;
+  padding: 0.5em;
+  font-family: monospace;
+  overflow-x: auto;
+}
+
+/* Figure/Image styling */
+.nanotext-content figure {
+  margin: 1em 0;
+  padding: 0;
+}
+
+.nanotext-content figure img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.nanotext-content figcaption {
+  font-size: 0.875em;
+  color: #666;
+  text-align: center;
+  padding: 0.5em;
+  border: 1px dashed transparent;
+}
+
+.nanotext-content figcaption:focus {
+  outline: none;
+  border-color: var(--nanotext-border-color);
+}
+
+.nanotext-content figcaption:empty::before {
+  content: "Add a caption...";
+  color: #999;
+}
+
+/* List styling */
+.nanotext-content ul,
+.nanotext-content ol {
+  padding-left: 1.5em;
+}
+
+.nanotext-content li {
+  margin-bottom: 0.25em;
+}

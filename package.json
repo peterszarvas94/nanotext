@@ -56,7 +56,9 @@
   },
   "homepage": "https://github.com/peterszarvas94/nanotext#readme",
   "devDependencies": {
+    "@types/jsdom": "^27.0.0",
     "@types/node": "^25.0.3",
+    "jsdom": "^27.4.0",
     "typescript": "^5.9.3",
     "vite": "^5.4.21",
     "vitest": "^4.0.16"
